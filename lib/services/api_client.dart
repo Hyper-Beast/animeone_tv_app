@@ -1,21 +1,10 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 class ApiClient {
-  static String _baseUrl = '';
+  static const String _baseUrl = 'http://192.168.100.1:5000';
 
   static String get baseUrl => _baseUrl;
-
-  static Future<void> initialize() async {
-    try {
-      final configString = await rootBundle.loadString('assets/config.json');
-      final config = json.decode(configString);
-      _baseUrl = config['apiBaseUrl'] as String;
-    } catch (e) {
-      _baseUrl = 'http://192.168.1.1:5000';
-    }
-  }
 
   static Future<Map<String, dynamic>> get(
     String endpoint, {
@@ -28,7 +17,6 @@ class ApiClient {
       if (queryParams != null && queryParams.isNotEmpty) {
         uri = uri.replace(queryParameters: queryParams);
       }
-
 
       final response = await http.get(uri);
 

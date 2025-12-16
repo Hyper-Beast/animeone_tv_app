@@ -77,7 +77,6 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/
     # Only include the SVG icons that are actually used
     - icon/search.svg
     - icon/home.svg

@@ -1,12 +1,8 @@
 ﻿import 'package:flutter/material.dart';
-import 'services/api_client.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 初始化API客户端
-  await ApiClient.initialize();
 
   runApp(const TvApp());
 }

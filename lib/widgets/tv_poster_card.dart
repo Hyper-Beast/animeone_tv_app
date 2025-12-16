@@ -177,29 +177,40 @@ class _TvPosterCardState extends State<TvPosterCard> {
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: Row(
             children: [
-              // 状态徽章
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color:
-                      (widget.anime?.status.contains("连载") ?? false) ||
-                          (widget.anime?.status.contains("Live") ?? false)
-                      ? const Color(0xFF00B0FF)
-                      : Colors.white12,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  widget.anime?.status ?? "未知",
-                  style: TextStyle(
-                    color:
-                        (widget.anime?.status.contains("连载") ?? false) ||
-                            (widget.anime?.status.contains("Live") ?? false)
-                        ? Colors.black
-                        : Colors.white70,
-                    fontSize: 10, // 从11减小到10
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+              // 状态/年份徽章
+              Builder(
+                builder: (context) {
+                  final status = widget.anime?.status ?? "";
+                  final year = widget.anime?.year ?? "";
+
+                  // 判断是否为连载中
+                  final isOngoing =
+                      status.contains("连载") || status.contains("Live");
+
+                  // 🔥 统一规则：连载显示状态，完结显示年份
+                  final displayText = isOngoing ? status : year;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isOngoing
+                          ? const Color(0xFF00B0FF)
+                          : Colors.white12,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      displayText.isNotEmpty ? displayText : "未知",
+                      style: TextStyle(
+                        color: isOngoing ? Colors.black : Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(width: 4),
               // 观看进度徽章

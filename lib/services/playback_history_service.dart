@@ -51,7 +51,7 @@ class PlaybackHistoryService {
     }
   }
 
-  /// 获取所有播放记录（仅服务器）
+  /// 获取所有播放记录（包含完整番剧信息）
   static Future<List<PlaybackHistory>> getAllPlaybackHistory() async {
     try {
       final response = await ApiClient.get('/api/playback/list');
@@ -64,6 +64,12 @@ class PlaybackHistoryService {
             episodeTitle: item['episode_title'] as String,
             timestamp: DateTime.parse(item['timestamp'] as String),
             playbackPosition: item['playback_position'] as int? ?? 0,
+            // 🔥 解析新增的完整番剧信息
+            title: item['title'] as String?,
+            status: item['status'] as String?,
+            year: item['year'] as String?,
+            season: item['season'] as String?,
+            poster: item['poster'] as String?,
           );
         }).toList();
       }
@@ -71,15 +77,6 @@ class PlaybackHistoryService {
       return [];
     } catch (e) {
       return [];
-    }
-  }
-
-  /// 清除所有播放记录
-  static Future<void> clearAll() async {
-    try {
-      await ApiClient.post('/api/playback/clear_all', {});
-    } catch (e) {
-      rethrow;
     }
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/anime.dart';
 import '../../models/playback_history.dart';
-import '../../services/anime_service.dart';
 import '../../services/playback_history_service.dart';
 import '../../widgets/tv_poster_card.dart';
 import '../detail_screen.dart';
@@ -39,7 +38,7 @@ class _HistoryTabState extends State<HistoryTab> {
     });
 
     try {
-      // 获取所有播放记录
+      // 🔥 优化：获取所有播放记录（现在包含完整番剧信息）
       _historyList = await PlaybackHistoryService.getAllPlaybackHistory();
 
       if (_historyList.isEmpty) {
@@ -50,35 +49,25 @@ class _HistoryTabState extends State<HistoryTab> {
         return;
       }
 
-      // 获取所有番剧列表（分页加载）
-      List<Anime> allAnimes = [];
-      int page = 1;
-      bool hasMore = true;
-
-      while (hasMore && page <= 50) {
-        // 最多加载50页
-        final result = await AnimeService.getAnimeList(page: page);
-        final animes = result['list'] as List<Anime>;
-        if (animes.isEmpty) {
-          hasMore = false;
-        } else {
-          allAnimes.addAll(animes);
-          page++;
-        }
-      }
-
-      // 筛选出有播放记录的番剧，并按播放时间排序
-      final historyIds = _historyList.map((h) => h.animeId).toSet();
-      _historyAnimes = allAnimes
-          .where((anime) => historyIds.contains(anime.id))
+      // 🔥 优化：直接使用 PlaybackHistory 中的完整信息，无需额外请求
+      _historyAnimes = _historyList
+          .where((history) => history.title != null) // 只保留有标题的（说明后端找到了）
+          .map(
+            (history) => Anime(
+              id: history.animeId,
+              title: history.title!,
+              status: history.status ?? '完结',
+              year: history.year ?? '',
+              season: history.season ?? '',
+              poster: history.poster ?? '',
+              isFavorite: false, // 历史记录页面不需要显示追番状态
+              playback: PlaybackInfo(
+                episodeTitle: history.episodeTitle,
+                position: history.playbackPosition,
+              ),
+            ),
+          )
           .toList();
-
-      // 按播放时间排序（最近播放的在前）
-      _historyAnimes.sort((a, b) {
-        final aHistory = _historyList.firstWhere((h) => h.animeId == a.id);
-        final bHistory = _historyList.firstWhere((h) => h.animeId == b.id);
-        return bHistory.timestamp.compareTo(aHistory.timestamp);
-      });
 
       if (mounted) {
         setState(() {

@@ -27,14 +27,17 @@ class FavoritesService {
     }
   }
 
-  /// 获取追番列表
+  /// 获取追番列表（倒序：最新追的在前）
   static Future<List<String>> getFavorites() async {
     try {
       final response = await ApiClient.get('/api/favorites/list');
 
       if (response['code'] == 200) {
         final data = response['data'] as List;
-        return data.map((e) => e.toString()).toList();
+        final favorites = data.map((e) => e.toString()).toList();
+
+        // 🔥 倒序：最新追的番剧排在前面
+        return favorites.reversed.toList();
       }
       return [];
     } catch (e) {
@@ -59,6 +62,21 @@ class FavoritesService {
       return await removeFavorite(animeId);
     } else {
       return await addFavorite(animeId);
+    }
+  }
+
+  /// 获取追番列表（包含完整番剧信息）
+  static Future<List<Map<String, dynamic>>> getFavoritesWithDetails() async {
+    try {
+      final response = await ApiClient.get('/api/favorites/list_with_details');
+
+      if (response['code'] == 200) {
+        final data = response['data'] as List;
+        return data.map((e) => e as Map<String, dynamic>).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
   }
 }

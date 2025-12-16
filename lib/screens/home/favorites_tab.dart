@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/anime.dart';
-import '../../services/anime_service.dart';
 import '../../services/favorites_service.dart';
 import '../../widgets/tv_poster_card.dart';
 import '../detail_screen.dart';
@@ -16,7 +15,6 @@ class FavoritesTab extends StatefulWidget {
 
 class _FavoritesTabState extends State<FavoritesTab> {
   final ScrollController _scrollController = ScrollController();
-  List<String> _favoriteIds = [];
   List<Anime> _favoriteAnimes = [];
   bool _favoritesLoading = false;
 
@@ -39,10 +37,10 @@ class _FavoritesTabState extends State<FavoritesTab> {
     });
 
     try {
-      // 获取追番ID列表
-      _favoriteIds = await FavoritesService.getFavorites();
+      // 🔥 优化：直接获取包含完整信息的追番列表
+      final favoritesData = await FavoritesService.getFavoritesWithDetails();
 
-      if (_favoriteIds.isEmpty) {
+      if (favoritesData.isEmpty) {
         setState(() {
           _favoriteAnimes = [];
           _favoritesLoading = false;
@@ -50,26 +48,9 @@ class _FavoritesTabState extends State<FavoritesTab> {
         return;
       }
 
-      // 获取所有番剧列表（分页加载）
-      List<Anime> allAnimes = [];
-      int page = 1;
-      bool hasMore = true;
-
-      while (hasMore && page <= 50) {
-        // 最多加载50页
-        final result = await AnimeService.getAnimeList(page: page);
-        final animes = result['list'] as List<Anime>;
-        if (animes.isEmpty) {
-          hasMore = false;
-        } else {
-          allAnimes.addAll(animes);
-          page++;
-        }
-      }
-
-      // 筛选出追番的番剧
-      _favoriteAnimes = allAnimes
-          .where((anime) => _favoriteIds.contains(anime.id))
+      // 转换为 Anime 对象
+      _favoriteAnimes = favoritesData
+          .map((data) => Anime.fromJson(data))
           .toList();
 
       if (mounted) {
