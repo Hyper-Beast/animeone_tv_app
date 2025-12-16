@@ -53,7 +53,7 @@ class TvWeekButton extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: f || isSelected
-                      ? Colors.black.withOpacity(0.2)
+                      ? Colors.black.withValues(alpha: 0.2)
                       : Colors.white12,
                   borderRadius: BorderRadius.circular(10),
                 ),

@@ -67,7 +67,7 @@ class _TvPosterCardState extends State<TvPosterCard> {
                 boxShadow: _isFocused
                     ? [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -120,7 +120,7 @@ class _TvPosterCardState extends State<TvPosterCard> {
                           begin: Alignment.bottomCenter,
                           end: Alignment.center,
                           colors: [
-                            Colors.black.withOpacity(0.2),
+                            Colors.black.withValues(alpha: 0.2),
                             Colors.transparent,
                           ],
                         ),
@@ -138,7 +138,7 @@ class _TvPosterCardState extends State<TvPosterCard> {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
+                                color: Colors.black.withValues(alpha: 0.6),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(

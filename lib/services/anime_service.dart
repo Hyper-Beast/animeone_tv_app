@@ -6,7 +6,7 @@ class AnimeService {
   /// 获取番剧列表
   /// [page] 页码，从 1 开始
   /// [keyword] 搜索关键词
-  /// 返回 Map: {'list': List<Anime>, 'total': int}
+  /// 返回 Map: `{'list': List<Anime>, 'total': int}`
   static Future<Map<String, dynamic>> getAnimeList({
     int page = 1,
     String keyword = '',

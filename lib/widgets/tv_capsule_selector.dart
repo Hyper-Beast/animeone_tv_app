@@ -102,7 +102,7 @@ class _CapsuleItemState extends State<_CapsuleItem> {
             color: widget.isSelected
                 ? Colors.blueAccent
                 : _focusNode.hasFocus
-                ? Colors.white.withOpacity(0.1)
+                ? Colors.white.withValues(alpha: 0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(21),
             // 🔥 焦点时始终显示白边，无论是否选中
@@ -135,8 +135,8 @@ class _CapsuleItemState extends State<_CapsuleItem> {
                     ),
                     decoration: BoxDecoration(
                       color: widget.isSelected
-                          ? Colors.white.withOpacity(0.2)
-                          : Colors.white.withOpacity(0.1),
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(

@@ -172,13 +172,26 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   void _playEpisode(Episode episode) {
+    // 🔥 查找当前集数的索引
+    final currentIndex = _episodes.indexWhere(
+      (ep) => ep.title == episode.title,
+    );
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            PlayerScreen(anime: widget.anime, episode: episode),
+        builder: (context) => PlayerScreen(
+          anime: widget.anime,
+          allEpisodes: _episodes, // 🔥 传递所有集数
+          currentEpisodeIndex: currentIndex >= 0
+              ? currentIndex
+              : null, // 🔥 传递当前索引
+        ),
       ),
-    );
+    ).then((_) {
+      // 🔥 从播放器返回后，重新加载集数列表（刷新播放记录标记）
+      _loadEpisodes();
+    });
   }
 
   @override

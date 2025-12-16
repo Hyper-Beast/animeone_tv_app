@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../models/anime.dart';
 import '../../services/anime_service.dart';
 import '../../widgets/tv_capsule_selector.dart';
@@ -55,12 +54,13 @@ class _ScheduleTabState extends State<ScheduleTab> {
     int month = now.month;
     if (month >= 1 && month <= 3) {
       _realCurrentSeason = "冬季";
-    } else if (month >= 4 && month <= 6)
+    } else if (month >= 4 && month <= 6) {
       _realCurrentSeason = "春季";
-    else if (month >= 7 && month <= 9)
+    } else if (month >= 7 && month <= 9) {
       _realCurrentSeason = "夏季";
-    else
+    } else {
       _realCurrentSeason = "秋季";
+    }
 
     _selectedYear = _realCurrentYear;
     _selectedSeason = _realCurrentSeason;

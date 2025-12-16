@@ -220,7 +220,7 @@ class _HistoryTabState extends State<HistoryTab> {
                           '按观看时间排序',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: 0.5),
                           ),
                         ),
                       ],

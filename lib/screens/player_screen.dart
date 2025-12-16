@@ -14,9 +14,15 @@ import '../services/playback_history_service.dart';
 
 class PlayerScreen extends StatefulWidget {
   final Anime anime;
-  final Episode episode;
+  final List<Episode>? allEpisodes; // 🔥 所有集数列表
+  final int? currentEpisodeIndex; // 🔥 当前集数索引
 
-  const PlayerScreen({super.key, required this.anime, required this.episode});
+  const PlayerScreen({
+    super.key,
+    required this.anime,
+    this.allEpisodes,
+    this.currentEpisodeIndex,
+  });
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -38,9 +44,31 @@ class _PlayerScreenState extends State<PlayerScreen> {
   // 定期保存播放位置的定时器
   Timer? _savePositionTimer;
 
+  // 🔥 当前播放的集数和索引（可变）
+  late Episode _currentEpisode;
+  late int _currentEpisodeIndex;
+
+  // 🔥 控制标志
+  bool _hasTriggeredCompletion = false; // 防止重复触发
+  bool _shouldSave = true; // 控制是否允许保存
+
   @override
   void initState() {
     super.initState();
+    // 🔥 初始化当前集数信息
+    _currentEpisodeIndex = widget.currentEpisodeIndex ?? 0;
+    if (widget.allEpisodes != null &&
+        _currentEpisodeIndex < widget.allEpisodes!.length) {
+      _currentEpisode = widget.allEpisodes![_currentEpisodeIndex];
+    } else {
+      // 如果没有提供 allEpisodes，则无法自动播放下一集
+      _currentEpisode = Episode(
+        index: 0,
+        title: 'Unknown',
+        fullTitle: 'Unknown',
+        token: '',
+      );
+    }
     _initializePlayer();
   }
 
@@ -51,7 +79,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
 
     try {
-      final playUrl = await AnimeService.getPlayUrl(widget.episode.token);
+      final playUrl = await AnimeService.getPlayUrl(_currentEpisode.token);
       if (!mounted) return;
 
       _videoPlayerController = VideoPlayerController.networkUrl(
@@ -66,7 +94,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         widget.anime.id,
       );
       int startPosition = 0;
-      if (history != null && history.episodeTitle == widget.episode.title) {
+      if (history != null && history.episodeTitle == _currentEpisode.title) {
         startPosition = history.playbackPosition;
       }
 
@@ -97,7 +125,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             msg: "已跳转至 ${_formatDuration(Duration(seconds: startPosition))}",
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.CENTER,
-            backgroundColor: Colors.black.withOpacity(0.7),
+            backgroundColor: Colors.black.withValues(alpha: 0.7),
             textColor: Colors.white,
             fontSize: 18.0,
           );
@@ -107,12 +135,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
       // 保存初始播放记录
       await PlaybackHistoryService.savePlaybackHistory(
         widget.anime.id,
-        widget.episode.title,
+        _currentEpisode.title,
         playbackPosition: startPosition,
       );
 
       // 🔥 启动定期保存定时器（每10秒保存一次）
       _startSavePositionTimer();
+
+      // 🔥 监听播放完成事件
+      _videoPlayerController!.addListener(_videoListener);
 
       setState(() {
         _isLoading = false;
@@ -168,14 +199,124 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
+  // 🔥 监听视频播放状态
+  void _videoListener() {
+    if (_videoPlayerController == null ||
+        !_videoPlayerController!.value.isInitialized) {
+      return;
+    }
+
+    final position = _videoPlayerController!.value.position;
+    final duration = _videoPlayerController!.value.duration;
+
+    // 🔥 检查是否即将播放完成（剩余时间少于10秒）
+    // 因为每10秒上传一次，用10秒作为阈值确保最后一次上传后就触发
+    if (duration.inSeconds > 0 &&
+        (duration.inSeconds - position.inSeconds) <= 10 &&
+        !_hasTriggeredCompletion) {
+      // 🔥 防止重复触发
+      _hasTriggeredCompletion = true;
+      _onVideoCompleted();
+    }
+  }
+
+  // 🔥 视频播放完成处理
+  Future<void> _onVideoCompleted() async {
+    // 移除监听器，避免重复触发
+    _videoPlayerController?.removeListener(_videoListener);
+
+    // 🔥 禁止继续保存，避免 clear 后又 save
+    _shouldSave = false;
+
+    // 清除播放记录（表示已看完）
+    await PlaybackHistoryService.clearPlaybackHistory(widget.anime.id);
+
+    // 检查是否有下一集
+    if (widget.allEpisodes != null) {
+      // 🔥 注意：列表是倒序的（最新集在前），所以下一集是 index - 1
+      final nextIndex = _currentEpisodeIndex - 1;
+
+      if (nextIndex >= 0 && nextIndex < widget.allEpisodes!.length) {
+        final nextEpisode = widget.allEpisodes![nextIndex];
+
+        // 🔥 立即显示提示（而不是等播完才显示）
+        if (mounted) {
+          Fluttertoast.showToast(
+            msg: "即将播放下一集: ${nextEpisode.title}",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+            backgroundColor: Colors.black.withValues(alpha: 0.8),
+            textColor: Colors.white,
+            fontSize: 18.0,
+          );
+        }
+
+        // 🔥 等待视频播完（最多5秒）
+        if (_videoPlayerController != null &&
+            _videoPlayerController!.value.isPlaying) {
+          // 如果还在播放，等待播完
+          await Future.any([
+            _videoPlayerController!.position.then((pos) {
+              // 等待播放到结束
+              return Future.doWhile(() async {
+                if (!mounted || _videoPlayerController == null) return false;
+                final remaining =
+                    _videoPlayerController!.value.duration.inSeconds -
+                    _videoPlayerController!.value.position.inSeconds;
+                if (remaining <= 0) return false;
+                await Future.delayed(const Duration(milliseconds: 100));
+                return true;
+              });
+            }),
+            Future.delayed(const Duration(seconds: 5)), // 最多等5秒
+          ]);
+        }
+
+        if (mounted) {
+          // 🔥 关键修复：在当前页面重新初始化播放器，而不是跳转
+          _currentEpisode = nextEpisode;
+          _currentEpisodeIndex = nextIndex;
+
+          // 清理旧资源
+          _savePositionTimer?.cancel();
+          _hideTimer?.cancel();
+          _videoPlayerController?.removeListener(_videoListener);
+          _chewieController?.dispose();
+          _videoPlayerController?.dispose();
+
+          // 重新初始化
+          _shouldSave = true; // 🔥 重置保存标志
+          _hasTriggeredCompletion = false; // 🔥 重置完成标志
+          await _initializePlayer();
+        }
+      } else {
+        // 没有下一集了
+        if (mounted) {
+          Fluttertoast.showToast(
+            msg: "已播放完所有集数",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+            backgroundColor: Colors.black.withValues(alpha: 0.8),
+            textColor: Colors.white,
+            fontSize: 18.0,
+          );
+        }
+      }
+    }
+  }
+
   // 🔥 保存当前播放位置
   Future<void> _saveCurrentPosition() async {
     if (_videoPlayerController != null &&
-        _videoPlayerController!.value.isInitialized) {
+        _videoPlayerController!.value.isInitialized &&
+        _shouldSave) {
+      // 🔥 检查是否允许保存
       final position = _videoPlayerController!.value.position.inSeconds;
+
+      // 🔥 只保存，不清除（清除由 _onVideoCompleted 处理）
       await PlaybackHistoryService.savePlaybackHistory(
         widget.anime.id,
-        widget.episode.title,
+        _currentEpisode.title,
         playbackPosition: position,
       );
     }
@@ -193,6 +334,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    // 🔥 移除监听器
+    _videoPlayerController?.removeListener(_videoListener);
+
     // 🔥 退出前保存最终播放位置
     _saveCurrentPosition();
 
@@ -205,8 +349,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
         final now = DateTime.now();
         if (_lastBackPressed == null ||
             now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
@@ -216,14 +363,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
             msg: "再按一次返回键退出播放",
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.CENTER,
-            backgroundColor: Colors.black.withOpacity(0.7),
+            backgroundColor: Colors.black.withValues(alpha: 0.7),
             textColor: Colors.white,
             fontSize: 18.0,
           );
-
-          return false; // 不退出
+        } else {
+          Navigator.of(context).pop();
         }
-        return true; // 退出
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -348,7 +494,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       if (!value.isPlaying) {
                         return Container(
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           padding: const EdgeInsets.all(20),
@@ -384,7 +530,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.black.withOpacity(0.8),
+                                  Colors.black.withValues(alpha: 0.8),
                                   Colors.transparent,
                                 ],
                                 begin: Alignment.topCenter,
@@ -403,7 +549,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               gradient: LinearGradient(
                                 colors: [
                                   Colors.transparent,
-                                  Colors.black.withOpacity(0.8),
+                                  Colors.black.withValues(alpha: 0.8),
                                 ],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
@@ -455,7 +601,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
-                                      widget.episode.title,
+                                      _currentEpisode.title,
                                       style: const TextStyle(
                                         color: Colors.white70,
                                         fontSize: 14,
@@ -498,8 +644,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       colors: VideoProgressColors(
                                         playedColor: Colors.blueAccent,
                                         bufferedColor: Colors.white24,
-                                        backgroundColor: Colors.grey
-                                            .withOpacity(0.5),
+                                        backgroundColor: Colors.grey.withValues(
+                                          alpha: 0.5,
+                                        ),
                                       ),
                                     ),
                                   ),

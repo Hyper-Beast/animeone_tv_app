@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'home/search_tab.dart';
 import 'home/schedule_tab.dart';
@@ -62,8 +63,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
         final now = DateTime.now();
         if (_lastBackPressed == null ||
             now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
@@ -74,14 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
             msg: "再按一次返回键退出应用",
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.CENTER,
-            backgroundColor: Colors.black.withOpacity(0.7),
+            backgroundColor: Colors.black.withValues(alpha: 0.7),
             textColor: Colors.white,
             fontSize: 18.0,
           );
-
-          return false; // 不退出
+        } else {
+          // 退出应用
+          SystemNavigator.pop();
         }
-        return true; // 退出
       },
       child: Scaffold(
         body: Row(
