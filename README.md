@@ -13,8 +13,10 @@
 - ⚡ **性能优化** - 图片缓存、懒加载、流畅滚动
 
 ## 截图展示
+<img width="1664" height="933" alt="image" src="https://github.com/user-attachments/assets/e3aeb8c2-bea9-4f29-8bb0-7784b6a16edd" />
+<img width="1658" height="933" alt="image" src="https://github.com/user-attachments/assets/7f6b22e6-4472-47c3-8d73-d17254ccaaf5" />
+<img width="1664" height="934" alt="image" src="https://github.com/user-attachments/assets/8604eb47-64ff-4cca-a805-9afd0d1f1425" />
 
-_（建议添加应用截图）_
 
 ## 技术栈
 
@@ -127,7 +129,7 @@ lib/
 
 ## 配套后端
 
-- [AnimeOne 后端服务](https://github.com/你的用户名/AnimeOne) - 必须先部署后端才能使用
+- [AnimeOne 后端服务](https://github.com/Hyper-Beast/AnimeOne_Server) - 必须先部署后端才能使用
 
 ## 开发说明
 
